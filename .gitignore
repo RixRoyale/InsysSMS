@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.exe
+insys-tlm-service
+
+# Database and Config
+insys.db
+config.json

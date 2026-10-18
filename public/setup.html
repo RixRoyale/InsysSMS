@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>System Initial Setup</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; padding: 40px; }
+        .setup-container { max-width: 550px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; background: #28a745; color: white; border: none; padding: 12px; font-size: 16px; cursor: pointer; border-radius: 4px; margin-top: 10px; font-weight: bold; }
+        button:hover { background: #218838; }
+        .btn-search { background: #17a2b8; margin-bottom: 15px; }
+        .btn-search:hover { background: #138496; }
+        .btn-small { background: #6c757d; padding: 8px; font-size: 14px; margin-top: 5px; }
+        .btn-small:hover { background: #5a6268; }
+        h2, h3 { margin-top: 0; color: #333; }
+        hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
+        #msg, #search-msg { margin-top: 10px; font-weight: bold; text-align: center; font-size: 14px; }
+        .role-badge { display: inline-block; background: #007bff; color: white; padding: 5px 10px; border-radius: 15px; margin: 2px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <h2>Initial System Setup</h2>
+        
+        <h3>1. Connect to SQL Server</h3>
+        <div class="form-group"><label>SQL Server Name / IP</label><input type="text" id="db-server"></div>
+        <div class="form-group"><label>Database Username</label><input type="text" id="db-user"></div>
+        <div class="form-group"><label>Database Password</label><input type="password" id="db-password"></div>
+        
+        <button type="button" class="btn-search" onclick="searchDatabases()">🔍 Search Databases</button>
+        <div id="search-msg"></div>
+
+        <div class="form-group">
+            <label>Select Target Database</label>
+            <select id="db-name">
+                <option value="">-- Click Search Databases First --</option>
+            </select>
+        </div>
+
+        <hr>
+
+        <h3>2. Define Role Types</h3>
+        <div class="form-group">
+            <label>Add Role (e.g., Admin, Engineer, Technician)</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="new-role" placeholder="Type a role name...">
+                <button type="button" class="btn-small" style="width: auto; margin-top: 0;" onclick="addRole()">Add Role</button>
+            </div>
+            <div id="role-list" style="margin-top: 10px;"></div>
+        </div>
+
+        <hr>
+        
+        <h3>3. Create Initial Admin Access</h3>
+        <div class="form-group"><label>User ID (Short Name, e.g., admin)</label><input type="text" id="admin-id" placeholder="admin"></div>
+        <div class="form-group"><label>Full Name</label><input type="text" id="admin-name" placeholder="System Administrator"></div>
+        <div class="form-group"><label>Telephone Number</label><input type="text" id="admin-phone" placeholder="+123456789"></div>
+        <div class="form-group"><label>Password</label><input type="password" id="admin-pass"></div>
+        <div class="form-group">
+            <label>Assign Access Role</label>
+            <select id="admin-role"><option value="">-- Add roles above first --</option></select>
+        </div>
+        
+        <button onclick="runSetup()">Run Setup & Initialize System</button>
+        <div id="msg"></div>
+    </div>
+
+    <script>
+        let customRoles = ['Admin', 'Engineer'];
+
+        window.onload = async () => {
+            await loadSavedConfig();
+            updateRoleUI();
+        };
+
+        async function loadSavedConfig() {
+            try {
+                const res = await fetch('/api/setup/config');
+                if (res.ok) {
+                    const config = await res.json();
+                    document.getElementById('db-server').value = config.server || 'localhost';
+                    document.getElementById('db-user').value = config.user || 'sa';
+                    
+                    if (config.database) {
+                        const dbDropdown = document.getElementById('db-name');
+                        dbDropdown.innerHTML = `<option value="${config.database}" selected>${config.database}</option>`;
+                    }
+                }
+            } catch (err) {
+                console.error("Could not fetch setup config:", err);
+            }
+        }
+
+        function addRole() {
+            const roleInput = document.getElementById('new-role');
+            const roleName = roleInput.value.trim();
+            if (roleName && !customRoles.includes(roleName)) {
+                customRoles.push(roleName);
+                roleInput.value = '';
+                updateRoleUI();
+            }
+        }
+
+        function updateRoleUI() {
+            const roleListDiv = document.getElementById('role-list');
+            roleListDiv.innerHTML = customRoles.map(r => `<span class="role-badge">${r}</span>`).join(' ');
+
+            const roleSelect = document.getElementById('admin-role');
+            roleSelect.innerHTML = customRoles.map(r => `<option value="${r}">${r}</option>`).join('');
+        }
+
+        async function searchDatabases() {
+            const server = document.getElementById('db-server').value;
+            const dbUser = document.getElementById('db-user').value;
+            const dbPassword = document.getElementById('db-password').value;
+            const searchMsg = document.getElementById('search-msg');
+            const dbDropdown = document.getElementById('db-name');
+
+            searchMsg.innerText = "Connecting to server...";
+            searchMsg.style.color = "blue";
+
+            try {
+                const res = await fetch('/api/databases', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ server, dbUser, dbPassword })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    searchMsg.style.color = "green";
+                    searchMsg.innerText = `Found ${data.databases.length} databases.`;
+                    const currentSelection = dbDropdown.value; 
+                    dbDropdown.innerHTML = ''; 
+                    data.databases.forEach(db => {
+                        const option = document.createElement('option');
+                        option.value = db; option.text = db;
+                        if (db === currentSelection) option.selected = true;
+                        dbDropdown.appendChild(option);
+                    });
+                } else {
+                    searchMsg.style.color = "red"; searchMsg.innerText = "Error: " + data.error;
+                }
+            } catch (err) {
+                searchMsg.style.color = "red"; searchMsg.innerText = "Server error. Is node running?";
+            }
+        }
+
+        async function runSetup() {
+            const payload = {
+                server: document.getElementById('db-server').value,
+                database: document.getElementById('db-name').value,
+                dbUser: document.getElementById('db-user').value,
+                dbPassword: document.getElementById('db-password').value,
+                adminUserId: document.getElementById('admin-id').value,
+                adminUserName: document.getElementById('admin-name').value,
+                adminPhone: document.getElementById('admin-phone').value,
+                adminPassword: document.getElementById('admin-pass').value,
+                roles: customRoles,
+                adminRole: document.getElementById('admin-role').value
+            };
+            
+            const msgDiv = document.getElementById('msg');
+            if (!payload.database) {
+                msgDiv.innerText = "Please search and select a database first."; msgDiv.style.color = "red"; return;
+            }
+            if (payload.roles.length === 0 || !payload.adminRole) {
+                msgDiv.innerText = "Please define at least one role and assign it to the user."; msgDiv.style.color = "red"; return;
+            }
+
+            msgDiv.innerText = "Configuring tables, roles, and creating user..."; 
+            msgDiv.style.color = "blue";
+
+            try {
+                const res = await fetch('/api/setup', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgDiv.style.color = "green"; 
+                    msgDiv.innerHTML = `${data.message}<br><br><a href="/">Go to Login screen</a>`;
+                } else {
+                    msgDiv.style.color = "red"; msgDiv.innerText = "Error: " + data.error;
+                }
+            } catch (err) {
+                msgDiv.style.color = "red"; msgDiv.innerText = "Server error. Ensure server.js is running.";
+            }
+        }
+    </script>
+</body>
+</html>

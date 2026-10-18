@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Record Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
+        
+        .login-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .login-box { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+
+        .app-container { display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 250px; background-color: #1e293b; color: white; display: flex; flex-direction: column; justify-content: space-between; padding: 20px 0; flex-shrink: 0; }
+        .sidebar-header { padding: 0 20px 20px 20px; border-bottom: 1px solid #334155; }
+        .sidebar-header h3 { margin: 0; color: #38bdf8; font-size: 18px; }
+        .sidebar-menu { list-style: none; padding: 0; margin: 20px 0 0 0; }
+        .sidebar-menu li { padding: 12px 20px; cursor: pointer; color: #94a3b8; font-weight: bold; display: flex; align-items: center; gap: 10px; transition: all 0.2s; }
+        .sidebar-menu li:hover, .sidebar-menu li.active { background-color: #334155; color: #ffffff; border-left: 4px solid #38bdf8; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid #334155; }
+
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; background-color: #f8fafc; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+
+        .panel { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; color: #334155; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+        
+        button { background-color: #0284c7; color: white; border: none; padding: 10px 18px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 14px; }
+        button:hover { background-color: #0369a1; }
+        .btn-success { background-color: #16a34a; }
+        .btn-success:hover { background-color: #15803d; }
+        .btn-danger { background-color: #dc2626; width: 100%; }
+        .btn-danger:hover { background-color: #b91c1c; }
+        .btn-small-danger { background-color: #dc2626; padding: 4px 8px; font-size: 12px; margin-left: 4px; }
+        .btn-small-danger:hover { background-color: #b91c1c; }
+        .btn-purple { background-color: #7c3aed; }
+        .btn-purple:hover { background-color: #6d28d9; }
+        .btn-small { padding: 4px 10px; font-size: 12px; }
+        
+        .success-msg { color: #16a34a; margin-top: 10px; display: none; font-weight: bold; }
+        .error-msg { color: #dc2626; margin-top: 10px; display: none; font-weight: bold; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        th, td { padding: 14px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+        th { background-color: #f1f5f9; color: #475569; font-size: 13px; text-transform: uppercase; }
+
+        .age-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+        .age-green { background-color: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+        .age-yellow { background-color: #fef9c3; color: #a16207; border: 1px solid #fde047; }
+        .age-red { background-color: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+        .sync-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; font-weight: normal; margin-left: 15px;}
+        .sync-dot { width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block; }
+        .sync-dot.syncing { animation: pulse 1s infinite; background-color: #7c3aed;}
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; }
+
+        @media print {
+            body * { visibility: hidden; }
+            .modal-content, .modal-content * { visibility: visible; }
+            .modal-content { position: absolute; left: 0; top: 0; width: 100%; max-width: 100%; padding: 0; box-shadow: none; }
+            .no-print { display: none !important; }
+            .print-page-break { page-break-after: always; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px dashed #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-section" class="login-wrapper">
+        <div class="login-box">
+            <h2>System Login</h2>
+            <div class="form-group"><label>User ID</label><input type="text" id="user-id"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="password"></div>
+            <button style="width: 100%;" onclick="login()">Login</button>
+            <div id="login-error" class="error-msg"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCREEN -->
+    <div id="app-sections" class="app-container" style="display: none;">
+        <div class="sidebar">
+            <div>
+                <div class="sidebar-header">
+                    <h3>Service System</h3>
+                    <small id="welcome-user" style="color: #94a3b8;"></small>
+                </div>
+                <ul class="sidebar-menu">
+                    <li id="nav-VIEW_SOIS" class="perm-nav active" style="display:none;" onclick="switchView('dashboard-view', this)">📊 SOI Dashboard</li>
+                    <li id="nav-ADD_SOI" class="perm-nav" style="display:none;" onclick="switchView('new-soi-view', this)">➕ Create New SOI</li>
+                    <li id="nav-VIEW_REMOTE_SO" class="perm-nav" style="display:none;" onclick="switchView('remote-so-view', this)">🔍 Synced SO Search</li>
+                    <li id="nav-PASS_MGMT" class="perm-nav" onclick="switchView('change-pass-view', this)">🔑 Password Manager</li>
+                    <li id="nav-CREATE_USER" class="perm-nav" style="display:none;" onclick="switchView('create-user-view', this)">👤 User Management</li>
+                    <li id="nav-ROLE_MGMT" class="perm-nav" style="display:none;" onclick="switchView('role-mgmt-view', this)">🔐 Role & Permission Matrix</li>
+                    <li id="nav-DB_SETTINGS" class="perm-nav" style="display:none;" onclick="switchView('db-settings-view', this)">⚙️ DB Settings</li>
+                </ul>
+            </div>
+            <div class="sidebar-footer">
+                <button class="btn-danger" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- SOI DASHBOARD -->
+            <div id="dashboard-view" class="content-section active">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <h2 style="display: inline;">Outstanding SOIs</h2>
+                        <span class="sync-status">
+                            <span id="sync-dot" class="sync-dot"></span>
+                            <span id="sync-text">Live Auto-polling</span>
+                        </span>
+                    </div>
+                    <div>
+                        <button class="btn-purple" style="margin-right: 8px;" onclick="syncRemoteDB()">☁️ Sync Remote Data</button>
+                        <button style="background: #10b981;" onclick="exportToCSV()">📥 Export CSV</button>
+                    </div>
+                </div>
+
+                <div id="sync-msg" style="margin-bottom: 15px; font-size: 14px;"></div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="soi-search" placeholder="Search by SOI Number, Junction, or Description..." style="flex: 2; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px;" onkeyup="filterSOITable()">
+                    <select id="soi-aging-filter" style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px;" onchange="filterSOITable()">
+                        <option value="ALL">All Priority Ages</option>
+                        <option value="GREEN">🟢 New (0-3 Days)</option>
+                        <option value="YELLOW">🟡 Warning (4-7 Days)</option>
+                        <option value="RED">🔴 Urgent (8+ Days)</option>
+                    </select>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:15%">SOI Number</th>
+                            <th style="width:10%">Age</th>
+                            <th style="width:10%">Junction No</th>
+                            <th style="width:15%">PC Number</th>
+                            <th style="width:38%">Details (Equipment / Description)</th>
+                            <th style="width:12%">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="soi-table-body"></tbody>
+                </table>
+            </div>
+
+            <!-- CREATE NEW SOI & IMPORT -->
+            <div id="new-soi-view" class="content-section">
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h2>Log New Service Order (SOI)</h2>
+                        <div class="panel" style="max-width: 600px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="form-group"><label>SOI Number</label><input type="text" id="soi-number" placeholder="SOI-2026-001"></div>
+                                <div class="form-group"><label>Issue Date</label><input type="date" id="soi-date"></div>
+                                <div class="form-group"><label>Junction No</label><input type="text" id="soi-junction" placeholder="JCT-42B"></div>
+                                <div class="form-group"></div>
+                                <div class="form-group"><label>PC Number</label><input type="text" id="soi-pc-number" placeholder="PC-12345"></div>
+                                <div class="form-group"><label>PC Date</label><input type="date" id="soi-pc-date"></div>
+                            </div>
+                            <div class="form-group"><label>Description</label><textarea id="soi-description" rows="3"></textarea></div>
+                            <button class="btn-success" onclick="createSOI()">Submit Service Order</button>
+                            <div id="soi-msg"></div>
+                        </div>
+                    </div>
+
+                    <div style="flex: 1;">
+                        <h2>Bulk Import via Excel</h2>
+                        <div class="panel" style="max-width: 500px; background-color: #f0fdf4; border: 1px solid #bbf7d0;">
+                            <p style="font-size: 13px; color: #475569; margin-top:0;">Upload a list of SOIs. <br>
+                                <a href="#" onclick="downloadTemplate()" style="color: #0284c7; font-weight:bold;">Download Excel Template (.xlsx)</a>
+                            </p>
+                            <div class="form-group">
+                                <input type="file" id="import-file" accept=".xlsx, .xls, .csv">
+                            </div>
+                            <button class="btn-purple" onclick="importSOIs()">Upload & Import</button>
+                            <div id="import-msg" style="margin-top: 10px; font-weight: bold; font-size: 14px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SYNCED SO SEARCH -->
+            <div id="remote-so-view" class="content-section">
+                <h2>Synced Sales Order Search</h2>
+                <div class="panel">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="remote-search-term" placeholder="Enter Location, SOI No, or SO No..." style="flex: 2; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                        <button class="btn-purple" onclick="searchRemoteSO()">🔍 Search Synced Sales Order</button>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+                        <button class="btn-success" onclick="previewBatchReports(false)">📄 Preview Detailed Report (Selected)</button>
+                        <button style="background: #0284c7;" onclick="previewBatchReports(true)">📄 Detailed Report (All Results)</button>
+                        <span id="selected-count-badge" style="font-size: 13px; color: #64748b; font-weight: bold;">0 Selected</span>
+                    </div>
+
+                    <div id="remote-search-msg" style="margin-bottom: 15px; font-size: 14px;"></div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:4%; text-align:center;"><input type="checkbox" id="select-all-remote" onchange="toggleSelectAllRemote(this.checked)"></th>
+                                <th style="width:12%">Doc Date</th>
+                                <th style="width:13%">Doc No (SO)</th>
+                                <th style="width:15%">SOI Number</th>
+                                <th style="width:10%">Location</th>
+                                <th style="width:10%">PC Number</th>
+                                <th style="width:26%">Details</th>
+                                <th style="width:10%">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="remote-so-table-body">
+                            <tr><td colspan="8" style="text-align:center;">Enter a search term and click Search.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PASSWORD MANAGER -->
+            <div id="change-pass-view" class="content-section">
+                <h2>Password Management</h2>
+                <div class="panel" style="max-width: 500px;">
+                    <div class="form-group">
+                        <label>Target User ID</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="pass-target-id" placeholder="Enter User ID">
+                            <button type="button" class="btn-small" style="background:#64748b;" onclick="setOwnUserId()">Reset to My ID</button>
+                        </div>
+                    </div>
+                    <div class="form-group"><label>New Password</label><input type="password" id="pass-new-password"></div>
+                    <button onclick="updatePassword()">Update Password</button>
+                    <div id="pass-msg"></div>
+                </div>
+            </div>
+
+            <!-- USER MANAGEMENT -->
+            <div id="create-user-view" class="content-section">
+                <h2>User Management</h2>
+                <div class="panel" style="max-width: 600px;">
+                    <div class="form-group"><label>User ID</label><input type="text" id="new-user-id"></div>
+                    <div class="form-group"><label>Full Name</label><input type="text" id="new-user-name"></div>
+                    <div class="form-group"><label>Telephone Number</label><input type="text" id="new-user-phone"></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="new-password"></div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="new-role"><option value="">Loading roles...</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status Access</label>
+                        <select id="new-user-active">
+                            <option value="T">Enabled (T)</option>
+                            <option value="F">Disabled (F)</option>
+                        </select>
+                    </div>
+                    <button onclick="createUser()">Create User</button>
+                    <div id="create-user-msg"></div>
+                </div>
+            </div>
+
+            <!-- ROLE & PERMISSION MATRIX -->
+            <div id="role-mgmt-view" class="content-section">
+                <h2>Dynamic Permission Matrix</h2>
+                <div class="panel">
+                    <h3>1. Create New Role</h3>
+                    <div style="display: flex; gap: 10px; max-width: 400px; margin-bottom: 20px;">
+                        <input type="text" id="admin-new-role" placeholder="Role Name" style="flex: 1;">
+                        <button onclick="addNewRole()">Add Role</button>
+                    </div>
+
+                    <h3>2. Manage Permission Matrix</h3>
+                    <table id="matrix-table">
+                        <thead>
+                            <tr id="matrix-header-row">
+                                <th>Permission Feature</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matrix-table-body"></tbody>
+                    </table>
+                    <div id="role-msg"></div>
+                </div>
+            </div>
+
+            <!-- DATABASE SETTINGS -->
+            <div id="db-settings-view" class="content-section">
+                <h2>Database Connection Settings</h2>
+                <div style="display: flex; gap: 20px;">
+                    <!-- LOCAL DB -->
+                    <div class="panel" style="flex: 1; max-width: 450px;">
+                        <h3>Local Database</h3>
+                        <div class="form-group"><label>SQL Server Name / IP</label><input type="text" id="db-server"></div>
+                        <div class="form-group"><label>Database Username</label><input type="text" id="db-user"></div>
+                        <div class="form-group"><label>Database Password</label><input type="password" id="db-password" placeholder="Enter to search or save"></div>
+                        <button type="button" class="btn-purple" style="margin-bottom: 15px; width: 100%;" onclick="searchDatabases('local')">🔍 Search Local Databases</button>
+                        <div id="local-search-msg" style="margin-bottom: 10px; font-size: 13px;"></div>
+                        <div class="form-group">
+                            <label>Database Name</label>
+                            <select id="db-name"><option value="">-- Search to list --</option></select>
+                        </div>
+                    </div>
+                    
+                    <!-- REMOTE DB -->
+                    <div class="panel" style="flex: 1; max-width: 450px; background-color: #f3e8ff; border: 1px solid #d8b4fe;">
+                        <h3>Remote DB Setup</h3>
+                        <div class="form-group"><label>Remote Server IP</label><input type="text" id="remote-server"></div>
+                        <div class="form-group"><label>Remote Port</label><input type="number" id="remote-port"></div>
+                        <div class="form-group"><label>Remote DB Username</label><input type="text" id="remote-user"></div>
+                        <div class="form-group"><label>Remote DB Password</label><input type="password" id="remote-password" placeholder="Enter to search or save"></div>
+                        <button type="button" class="btn-purple" style="margin-bottom: 15px; width: 100%;" onclick="searchDatabases('remote')">🔍 Search Remote Databases</button>
+                        <div id="remote-search-msg" style="margin-bottom: 10px; font-size: 13px;"></div>
+                        <div class="form-group">
+                            <label>Remote DB Name</label>
+                            <select id="remote-db-name"><option value="">-- Search to list --</option></select>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="updateDatabase()" style="width: 200px;">Save All DB Settings</button>
+                <div id="db-msg"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SOI EDIT MODAL -->
+    <div id="edit-soi-modal" class="modal">
+        <div class="modal-content">
+            <h3>Edit Service Order (SOI)</h3>
+            <input type="hidden" id="edit-soi-number-hidden">
+            <div class="form-group"><label>SOI Number</label><input type="text" id="edit-soi-number" disabled></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>Issue Date</label><input type="date" id="edit-soi-date"></div>
+                <div class="form-group"><label>Junction No</label><input type="text" id="edit-soi-junction"></div>
+                <div class="form-group"><label>PC Number</label><input type="text" id="edit-soi-pc-number"></div>
+                <div class="form-group"><label>PC Date</label><input type="date" id="edit-soi-pc-date"></div>
+            </div>
+            <div class="form-group"><label>Description</label><textarea id="edit-soi-description" rows="5"></textarea></div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" style="background:#64748b;" onclick="closeModal('edit-soi-modal')">Cancel</button>
+                <button type="button" class="btn-success" onclick="saveSOIEdit()">Save Changes</button>
+            </div>
+            <div id="edit-soi-msg"></div>
+        </div>
+    </div>
+
+    <!-- MULTI-PAGE DETAILED REPORT & PREVIEW MODAL -->
+    <div id="preview-modal" class="modal">
+        <div class="modal-content" style="border-top: 6px solid #7c3aed; max-width: 800px;">
+            <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin:0; color:#7c3aed;">Detailed Service Order Report</h3>
+                <div>
+                    <button class="btn-success" onclick="window.print()">🖨️ Print / Save as PDF</button>
+                    <button style="background:#64748b; margin-left: 8px;" onclick="closeModal('preview-modal')">Close</button>
+                </div>
+            </div>
+
+            <div id="print-reports-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api'; 
+        let currentPermissions = [];
+        let globalSOIs = [];
+        let remoteSearchResults = [];
+        let pollingTimer = null;
+        const POLLING_INTERVAL_MS = 15000; 
+        
+        const ALL_FEATURES = [
+            { key: 'VIEW_SOIS', label: 'View SOIs' },
+            { key: 'ADD_SOI', label: 'Add SOI' },
+            { key: 'VIEW_REMOTE_SO', label: 'Synced SO Search' },
+            { key: 'EDIT_SOI', label: 'Edit SOI' },
+            { key: 'DELETE_SOI', label: 'Delete SOI' },
+            { key: 'CREATE_USER', label: 'Create User' },
+            { key: 'EDIT_ENG_TECH_PASSWORDS', label: 'Edit Other User Passwords' },
+            { key: 'ROLE_MGMT', label: 'Role & Permission Matrix' },
+            { key: 'DB_SETTINGS', label: 'DB Connection Settings' }
+        ];
+
+        function formatDateString(dateInput) {
+            if (!dateInput) return 'N/A';
+            const d = new Date(dateInput);
+            if (isNaN(d.getTime())) return 'N/A';
+            const day = String(d.getDate()).padStart(2, '0');
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const month = months[d.getMonth()];
+            const year = d.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        window.onload = () => {
+            document.getElementById('soi-date').valueAsDate = new Date();
+            if (localStorage.getItem('token')) initializeSession();
+            else document.getElementById('login-section').style.display = 'flex';
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) stopPolling();
+                else if (document.getElementById('dashboard-view').classList.contains('active')) startPolling();
+            });
+        };
+
+        async function login() {
+            const u = document.getElementById('user-id').value;
+            const p = document.getElementById('password').value;
+            const err = document.getElementById('login-error');
+
+            try {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: u, password: p })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('token', data.token); 
+                    localStorage.setItem('role', data.role); 
+                    localStorage.setItem('userName', data.userName);
+                    localStorage.setItem('userId', data.userId);
+                    localStorage.setItem('permissions', JSON.stringify(data.permissions || []));
+                    err.style.display = 'none'; 
+                    initializeSession();
+                } else {
+                    err.innerText = data.error; err.style.display = 'block';
+                }
+            } catch (e) { err.innerText = 'Cannot connect to server.'; err.style.display = 'block'; }
+        }
+
+        async function initializeSession() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('app-sections').style.display = 'flex';
+            document.getElementById('welcome-user').innerText = `${localStorage.getItem('userName')} (${localStorage.getItem('role')})`;
+            
+            await refreshPermissions();
+
+            const role = localStorage.getItem('role');
+            const isUserAdmin = role === 'Admin' || role === 'Administrator';
+
+            document.querySelectorAll('.perm-nav').forEach(el => el.style.display = 'none');
+            
+            if (isUserAdmin || hasPerm('VIEW_SOIS')) document.getElementById('nav-VIEW_SOIS').style.display = 'flex';
+            if (isUserAdmin || hasPerm('ADD_SOI')) document.getElementById('nav-ADD_SOI').style.display = 'flex';
+            if (isUserAdmin || hasPerm('VIEW_REMOTE_SO')) document.getElementById('nav-VIEW_REMOTE_SO').style.display = 'flex';
+            document.getElementById('nav-PASS_MGMT').style.display = 'flex';
+            if (isUserAdmin || hasPerm('CREATE_USER')) document.getElementById('nav-CREATE_USER').style.display = 'flex';
+            if (isUserAdmin || hasPerm('ROLE_MGMT')) document.getElementById('nav-ROLE_MGMT').style.display = 'flex';
+            if (isUserAdmin || hasPerm('DB_SETTINGS')) document.getElementById('nav-DB_SETTINGS').style.display = 'flex';
+
+            if (isUserAdmin || hasPerm('CREATE_USER')) fetchRoles();
+            if (isUserAdmin || hasPerm('DB_SETTINGS')) fetchCurrentSettings();
+
+            setOwnUserId();
+            switchView('dashboard-view', document.getElementById('nav-VIEW_SOIS'));
+        }
+
+        function setOwnUserId() { document.getElementById('pass-target-id').value = localStorage.getItem('userId') || ''; }
+
+        async function refreshPermissions() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${API_URL}/permissions/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    currentPermissions = await res.json();
+                    localStorage.setItem('permissions', JSON.stringify(currentPermissions));
+                }
+            } catch (e) { currentPermissions = JSON.parse(localStorage.getItem('permissions') || '[]'); }
+        }
+
+        function hasPerm(key) {
+            const role = localStorage.getItem('role');
+            if (role === 'Admin' || role === 'Administrator') return true;
+            return currentPermissions.includes(key);
+        }
+
+        function switchView(viewId, menuItem) {
+            stopPolling();
+
+            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+            document.querySelectorAll('.sidebar-menu li').forEach(li => li.classList.remove('active'));
+
+            document.getElementById(viewId).classList.add('active');
+            if(menuItem) menuItem.classList.add('active');
+
+            if (viewId === 'dashboard-view') {
+                fetchSOIs();
+                startPolling();
+            }
+            if (viewId === 'role-mgmt-view') renderPermissionMatrix();
+        }
+
+        function startPolling() { stopPolling(); pollingTimer = setInterval(() => { fetchSOIs(true); }, POLLING_INTERVAL_MS); }
+        function stopPolling() { if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; } }
+
+        function calculateAge(issueDate) {
+            const issue = new Date(issueDate);
+            const now = new Date();
+            return Math.floor(Math.abs(now - issue) / (1000 * 60 * 60 * 24));
+        }
+
+        function getAgeBadge(days) {
+            if (days <= 3) return `<span class="age-badge age-green">🟢 ${days} ${days === 1 ? 'Day' : 'Days'}</span>`;
+            if (days <= 7) return `<span class="age-badge age-yellow">🟡 ${days} Days</span>`;
+            return `<span class="age-badge age-red">🔴 ${days} Days</span>`;
+        }
+
+        async function fetchSOIs(isBackground = false) {
+            const token = localStorage.getItem('token');
+            const syncDot = document.getElementById('sync-dot');
+            if (syncDot) syncDot.classList.add('syncing');
+
+            try {
+                const res = await fetch(`${API_URL}/outstanding-sois`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.status === 401 || res.status === 403) return logout();
+                globalSOIs = await res.json();
+                filterSOITable();
+            } catch (e) { console.error(e); } 
+            finally { if (syncDot) syncDot.classList.remove('syncing'); }
+        }
+
+        async function searchRemoteSO() {
+            const searchTerm = document.getElementById('remote-search-term').value.trim();
+            const msgDiv = document.getElementById('remote-search-msg');
+            const tbody = document.getElementById('remote-so-table-body');
+
+            if (!searchTerm) {
+                msgDiv.innerText = "Please enter a search term.";
+                msgDiv.style.color = "#dc2626";
+                return;
+            }
+
+            msgDiv.innerText = "Searching database...";
+            msgDiv.style.color = "#7c3aed";
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading...</td></tr>';
+
+            try {
+                const res = await fetch(`${API_URL}/remote-so-list`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ searchTerm })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    remoteSearchResults = data;
+                    msgDiv.innerText = `✔️ Found ${data.length} records matching '${searchTerm}'.`;
+                    msgDiv.style.color = "#16a34a";
+                    
+                    document.getElementById('select-all-remote').checked = false;
+                    updateSelectedCount();
+
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No records found.</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = '';
+                    data.forEach((row, idx) => {
+                        const docDate = row.DocDate ? formatDateString(row.DocDate) : 'N/A';
+                        const details = `Equipment: ${row.UDF_EQUIP || 'N/A'}<br>Problem: ${row.UDF_PO || 'N/A'}<br>Action: ${row.UDF_ATTT || 'N/A'}<br>Attended By: ${row.UDF_ATTBY || 'N/A'}`;
+                        const pcNo = row.UDF_PCNO || 'N/A';
+                        
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="text-align:center;"><input type="checkbox" class="remote-row-checkbox" value="${idx}" onchange="updateSelectedCount()"></td>
+                                <td>${docDate}</td>
+                                <td><strong>${row.DocNo || 'N/A'}</strong></td>
+                                <td>${row.UDF_SOINO || 'N/A'}</td>
+                                <td>${row.UDF_LOCATION || 'N/A'}</td>
+                                <td><span class="age-badge" style="background:#e2e8f0; color:#475569; border:1px solid #cbd5e1;">${pcNo}</span></td>
+                                <td style="font-size: 13px; line-height: 1.5;">${details}</td>
+                                <td><button class="btn-small btn-purple" onclick="previewSingleReport(${idx})">👁️ Preview</button></td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    msgDiv.innerText = `❌ ${data.error}`;
+                    msgDiv.style.color = "#dc2626";
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Search failed.</td></tr>';
+                }
+            } catch (e) {
+                msgDiv.innerText = "❌ Network error connecting to backend.";
+                msgDiv.style.color = "#dc2626";
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Search failed.</td></tr>';
+            }
+        }
+
+        function toggleSelectAllRemote(checked) {
+            document.querySelectorAll('.remote-row-checkbox').forEach(cb => cb.checked = checked);
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.remote-row-checkbox:checked').length;
+            document.getElementById('selected-count-badge').innerText = `${count} Selected`;
+        }
+
+        function previewSingleReport(index) {
+            renderReportsHTML([remoteSearchResults[index]]);
+        }
+
+        function previewBatchReports(selectAll) {
+            let targetRows = [];
+            if (selectAll) {
+                targetRows = remoteSearchResults;
+            } else {
+                const checkedIndexes = Array.from(document.querySelectorAll('.remote-row-checkbox:checked')).map(cb => parseInt(cb.value));
+                targetRows = checkedIndexes.map(idx => remoteSearchResults[idx]).filter(Boolean);
+            }
+
+            if (targetRows.length === 0) {
+                alert("Please select at least one record to generate a report.");
+                return;
+            }
+
+            renderReportsHTML(targetRows);
+        }
+
+        function renderReportsHTML(records) {
+            const container = document.getElementById('print-reports-container');
+            container.innerHTML = '';
+
+            records.forEach((row, idx) => {
+                const docDate = row.DocDate ? formatDateString(row.DocDate) : 'N/A';
+                const detailsText = `Equipment: ${row.UDF_EQUIP || 'N/A'}\nProblem Observed: ${row.UDF_PO || 'N/A'}\nAction Taken: ${row.UDF_ATTT || 'N/A'}\nAttended By: ${row.UDF_ATTBY || 'N/A'}\nDocKey: ${row.DocKey || 'N/A'}`;
+                const isLast = idx === records.length - 1;
+
+                container.innerHTML += `
+                    <div class="print-page-break" style="font-size: 13px; color: #1e293b; border: 1px solid #cbd5e1; padding: 20px; border-radius: 6px; background: white; margin-bottom: 25px; ${isLast ? 'border-bottom: 1px solid #cbd5e1;' : ''}">
+                        <div style="text-align: center; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-bottom: 15px;">
+                            <h2 style="margin: 0; text-transform: uppercase;">SERVICE & SALES ORDER DETAILED REPORT</h2>
+                            <small style="color: #64748b;">INSYS TELEMATICS MANAGEMENT SYSTEM</small>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 4px;">
+                            <div><strong>SOI Number:</strong> ${row.UDF_SOINO || 'N/A'}</div>
+                            <div><strong>Sales Order (DocNo):</strong> ${row.DocNo || 'N/A'}</div>
+                            <div><strong>Doc Date:</strong> ${docDate}</div>
+                            <div><strong>Location / Junction:</strong> ${row.UDF_LOCATION || 'N/A'}</div>
+                            <div><strong>PC Number:</strong> ${row.UDF_PCNO || 'N/A'}</div>
+                            <div><strong>Record DocKey:</strong> ${row.DocKey || 'N/A'}</div>
+                        </div>
+
+                        <div style="margin-bottom: 15px;">
+                            <h4 style="margin-bottom: 5px; color: #334155; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px;">SERVICE & MAINTENANCE DETAILS</h4>
+                            <div style="line-height: 1.6; white-space: pre-line; background: #fff; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px;">${detailsText}</div>
+                        </div>
+
+                        <div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; text-align: center;">
+                            <div>
+                                <div style="border-bottom: 1px solid #000; height: 30px;"></div>
+                                <p style="margin-top: 5px; font-weight: bold;">Attended / Reported By</p>
+                            </div>
+                            <div>
+                                <div style="border-bottom: 1px solid #000; height: 30px;"></div>
+                                <p style="margin-top: 5px; font-weight: bold;">Authorized Client Verification</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('preview-modal').style.display = 'flex';
+        }
+
+        async function syncRemoteDB() {
+            const token = localStorage.getItem('token');
+            const msgDiv = document.getElementById('sync-msg');
+            const syncDot = document.getElementById('sync-dot');
+            
+            msgDiv.innerText = "Connecting to remote Database... This may take a few seconds.";
+            msgDiv.className = ""; msgDiv.style.color = "#7c3aed"; msgDiv.style.fontWeight = "bold";
+            if (syncDot) syncDot.classList.add('syncing');
+
+            try {
+                const res = await fetch(`${API_URL}/sync-remote-soi`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgDiv.innerText = `✔️ ${data.message}`;
+                    msgDiv.style.color = "#16a34a";
+                    fetchSOIs(); 
+                } else {
+                    msgDiv.innerText = `❌ ${data.error}`;
+                    msgDiv.style.color = "#dc2626";
+                }
+            } catch (e) {
+                msgDiv.innerText = "❌ Network error connecting to backend sync engine.";
+                msgDiv.style.color = "#dc2626";
+            } finally {
+                if (syncDot) syncDot.classList.remove('syncing');
+            }
+        }
+
+        function filterSOITable() {
+            const search = document.getElementById('soi-search').value.toLowerCase();
+            const ageFilter = document.getElementById('soi-aging-filter').value;
+            const tbody = document.getElementById('soi-table-body');
+            tbody.innerHTML = '';
+
+            const filtered = globalSOIs.filter(s => {
+                const age = calculateAge(s.IssueDate);
+                const matchesSearch = s.SOINumber.toLowerCase().includes(search) || 
+                                      s.JunctionNo.toLowerCase().includes(search) || 
+                                      s.Description.toLowerCase().includes(search) ||
+                                      (s.PCNumber && s.PCNumber.toLowerCase().includes(search));
+                
+                let matchesAge = true;
+                if (ageFilter === 'GREEN') matchesAge = (age <= 3);
+                if (ageFilter === 'YELLOW') matchesAge = (age >= 4 && age <= 7);
+                if (ageFilter === 'RED') matchesAge = (age >= 8);
+
+                return matchesSearch && matchesAge;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No matching outstanding SOIs.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(s => {
+                const ageDays = calculateAge(s.IssueDate);
+                const safeDesc = encodeURIComponent(s.Description);
+                const pcNumSafe = encodeURIComponent(s.PCNumber || '');
+                const pcDateSafe = s.PCDate ? new Date(s.PCDate).toISOString().split('T')[0] : '';
+                
+                let actionsHtml = '';
+                if (hasPerm('EDIT_SOI')) {
+                    actionsHtml += `<button class="btn-small" onclick="openEditModal('${s.SOINumber}', '${s.IssueDate}', '${s.JunctionNo}', decodeURIComponent('${safeDesc}'), decodeURIComponent('${pcNumSafe}'), '${pcDateSafe}')">Edit</button> `;
+                }
+                if (hasPerm('DELETE_SOI')) {
+                    actionsHtml += `<button class="btn-small-danger" onclick="deleteSOI('${s.SOINumber}')">🗑️</button>`;
+                }
+                if (!actionsHtml) {
+                    actionsHtml = `<span style="color:#94a3b8; font-size:12px;">View Only</span>`;
+                }
+
+                const formattedDesc = s.Description.replace(/\n/g, '<br>');
+                
+                const pcDateHtml = s.PCDate ? `<br><span style="font-size:11px; color:#64748b;">${formatDateString(s.PCDate)}</span>` : '';
+                const pcNoHtml = s.PCNumber ? `<strong>${s.PCNumber}</strong>${pcDateHtml}` : '<span style="color:#94a3b8; font-size:12px;">Pending</span>';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${s.SOINumber}</strong><br><span style="font-size:11px; color:#64748b;">${formatDateString(s.IssueDate)}</span></td>
+                        <td>${getAgeBadge(ageDays)}</td>
+                        <td>${s.JunctionNo}</td>
+                        <td>${pcNoHtml}</td>
+                        <td style="font-size: 13px; line-height: 1.5;">${formattedDesc}</td>
+                        <td>${actionsHtml}</td>
+                    </tr>`;
+            });
+        }
+
+        async function deleteSOI(soiNumber) {
+            if (!confirm(`Are you sure you want to delete Service Order '${soiNumber}'? This action cannot be undone.`)) {
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            const msgDiv = document.getElementById('sync-msg');
+
+            try {
+                const res = await fetch(`${API_URL}/soi/${encodeURIComponent(soiNumber)}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    msgDiv.innerText = `✔️ ${data.message}`;
+                    msgDiv.style.color = "#16a34a";
+                    fetchSOIs();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (e) {
+                alert("Network error while deleting Service Order.");
+            }
+        }
+
+        function exportToCSV() {
+            let csv = 'SOI Number,Issue Date,Age Days,Junction No,PC Number,PC Date,Description\n';
+            globalSOIs.forEach(s => {
+                const age = calculateAge(s.IssueDate);
+                const pcDateStr = s.PCDate ? formatDateString(s.PCDate) : '';
+                csv += `"${s.SOINumber}","${formatDateString(s.IssueDate)}",${age},"${s.JunctionNo}","${s.PCNumber || ''}","${pcDateStr}","${s.Description.replace(/"/g, '""')}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `Outstanding_SOIs_${new Date().toISOString().split('T')[0]}.csv`);
+            a.click();
+        }
+
+        async function downloadTemplate() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${API_URL}/soi/template`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.setAttribute('href', url);
+                    a.setAttribute('download', 'SOI_Import_Template.xlsx');
+                    a.click();
+                } else { alert("Failed to download template. Ensure you have ADD_SOI permission."); }
+            } catch (e) { console.error(e); }
+        }
+
+        async function importSOIs() {
+            const fileInput = document.getElementById('import-file');
+            const msgDiv = document.getElementById('import-msg');
+            const token = localStorage.getItem('token');
+
+            if (fileInput.files.length === 0) {
+                msgDiv.innerText = "Please select a file first.";
+                msgDiv.className = "error-msg"; msgDiv.style.display = "block";
+                return;
+            }
+
+            msgDiv.innerText = "Uploading and processing...";
+            msgDiv.style.color = "#7c3aed";
+            msgDiv.className = ""; msgDiv.style.display = "block";
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                const res = await fetch(`${API_URL}/soi/import`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    msgDiv.innerText = data.message;
+                    msgDiv.className = "success-msg";
+                    fileInput.value = '';
+                } else {
+                    msgDiv.innerText = data.error;
+                    msgDiv.className = "error-msg";
+                }
+            } catch (e) {
+                msgDiv.innerText = "Network error during upload.";
+                msgDiv.className = "error-msg";
+            }
+        }
+
+        async function renderPermissionMatrix() {
+            const token = localStorage.getItem('token');
+            try {
+                const [rolesRes, matrixRes] = await Promise.all([
+                    fetch(`${API_URL}/roles`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_URL}/permissions/matrix`, { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                if (!rolesRes.ok || !matrixRes.ok) return;
+
+                const roles = await rolesRes.json();
+                const matrix = await matrixRes.json();
+
+                const headerRow = document.getElementById('matrix-header-row');
+                headerRow.innerHTML = '<th>Permission Feature</th>' + roles.map(r => `<th>${r}</th>`).join('');
+
+                const tbody = document.getElementById('matrix-table-body');
+                tbody.innerHTML = '';
+
+                ALL_FEATURES.forEach(feature => {
+                    let tr = `<tr><td><strong>${feature.label}</strong> <br><small style="color:#64748b;">${feature.key}</small></td>`;
+                    roles.forEach(role => {
+                        const isChecked = matrix.some(m => m.RoleName === role && m.FeatureKey === feature.key);
+                        tr += `<td style="text-align: center;"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePermission('${role}', '${feature.key}', this.checked)"></td>`;
+                    });
+                    tr += '</tr>'; tbody.innerHTML += tr;
+                });
+            } catch (e) { console.error("Could not render matrix", e); }
+        }
+
+        async function togglePermission(roleName, featureKey, enabled) {
+            const token = localStorage.getItem('token');
+            try {
+                await fetch(`${API_URL}/permissions/toggle`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ roleName, featureKey, enabled })
+                });
+            } catch (e) { console.error("Toggle failed", e); }
+        }
+
+        function openEditModal(soiNumber, issueDate, junctionNo, description, pcNumber, pcDate) {
+            document.getElementById('edit-soi-number-hidden').value = soiNumber;
+            document.getElementById('edit-soi-number').value = soiNumber;
+            document.getElementById('edit-soi-date').value = new Date(issueDate).toISOString().split('T')[0];
+            document.getElementById('edit-soi-junction').value = junctionNo;
+            document.getElementById('edit-soi-pc-number').value = pcNumber || '';
+            document.getElementById('edit-soi-pc-date').value = pcDate || '';
+            document.getElementById('edit-soi-description').value = description;
+            document.getElementById('edit-soi-modal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) { 
+            document.getElementById(modalId).style.display = 'none'; 
+        }
+
+        async function saveSOIEdit() {
+            const soiNumber = document.getElementById('edit-soi-number-hidden').value;
+            const issueDate = document.getElementById('edit-soi-date').value;
+            const junctionNo = document.getElementById('edit-soi-junction').value;
+            const pcNumber = document.getElementById('edit-soi-pc-number').value;
+            const pcDate = document.getElementById('edit-soi-pc-date').value;
+            const description = document.getElementById('edit-soi-description').value;
+            const msgDiv = document.getElementById('edit-soi-msg');
+
+            try {
+                const res = await fetch(`${API_URL}/soi/${encodeURIComponent(soiNumber)}`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ issueDate, junctionNo, pcNumber, pcDate, description })
+                });
+                if (res.ok) { closeModal('edit-soi-modal'); fetchSOIs(); }
+                else { const data = await res.json(); msgDiv.innerText = data.error; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+            } catch (e) { msgDiv.innerText = "Server error."; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+        }
+
+        async function createSOI() {
+            const soiNumber = document.getElementById('soi-number').value;
+            const issueDate = document.getElementById('soi-date').value;
+            const junctionNo = document.getElementById('soi-junction').value;
+            const pcNumber = document.getElementById('soi-pc-number').value;
+            const pcDate = document.getElementById('soi-pc-date').value;
+            const description = document.getElementById('soi-description').value;
+            const msgDiv = document.getElementById('soi-msg');
+
+            if (!soiNumber || !issueDate || !junctionNo || !description) {
+                msgDiv.innerText = "Fill required fields (SOI Number, Date, Junction, Description)."; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/soi`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ soiNumber, issueDate, junctionNo, pcNumber, pcDate, description })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgDiv.innerText = data.message; msgDiv.className = "success-msg"; msgDiv.style.display = "block";
+                    document.getElementById('soi-number').value = ''; 
+                    document.getElementById('soi-junction').value = ''; 
+                    document.getElementById('soi-pc-number').value = ''; 
+                    document.getElementById('soi-pc-date').value = ''; 
+                    document.getElementById('soi-description').value = '';
+                } else { msgDiv.innerText = data.error; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+            } catch (e) { msgDiv.innerText = "Server error."; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+        }
+
+        async function updatePassword() {
+            const targetUserId = document.getElementById('pass-target-id').value;
+            const newPassword = document.getElementById('pass-new-password').value;
+            const msgDiv = document.getElementById('pass-msg');
+
+            try {
+                const res = await fetch(`${API_URL}/users/password`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ targetUserId, newPassword })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgDiv.innerText = data.message; msgDiv.className = "success-msg"; msgDiv.style.display = "block";
+                    document.getElementById('pass-new-password').value = '';
+                } else { msgDiv.innerText = data.error; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+            } catch (e) { msgDiv.innerText = "Server error."; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+        }
+
+        async function fetchRoles() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${API_URL}/roles`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const roles = await res.json();
+                    document.getElementById('new-role').innerHTML = roles.map(r => `<option value="${r}">${r}</option>`).join('');
+                }
+            } catch (e) { console.error("Could not fetch roles", e); }
+        }
+
+        async function addNewRole() {
+            const roleInput = document.getElementById('admin-new-role');
+            const roleName = roleInput.value.trim();
+            if (!roleName) return;
+
+            try {
+                const res = await fetch(`${API_URL}/roles`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ roleName })
+                });
+                if (res.ok) { roleInput.value = ''; renderPermissionMatrix(); }
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchCurrentSettings() {
+            const token = localStorage.getItem('token');
+            try {
+                const res = await fetch(`${API_URL}/settings/database`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    const config = await res.json();
+                    document.getElementById('db-server').value = config.server || '';
+                    if (config.database) document.getElementById('db-name').innerHTML = `<option value="${config.database}" selected>${config.database}</option>`;
+                    document.getElementById('db-user').value = config.user || '';
+                    
+                    document.getElementById('remote-server').value = config.remoteServer || '';
+                    document.getElementById('remote-port').value = config.remotePort || '';
+                    if (config.remoteDatabase) document.getElementById('remote-db-name').innerHTML = `<option value="${config.remoteDatabase}" selected>${config.remoteDatabase}</option>`;
+                    document.getElementById('remote-user').value = config.remoteUser || '';
+                }
+            } catch (e) { console.error("Could not fetch settings", e); }
+        }
+
+        async function searchDatabases(type) {
+            const isLocal = type === 'local';
+            const server = document.getElementById(isLocal ? 'db-server' : 'remote-server').value;
+            const port = isLocal ? null : document.getElementById('remote-port').value;
+            const dbUser = document.getElementById(isLocal ? 'db-user' : 'remote-user').value;
+            const dbPassword = document.getElementById(isLocal ? 'db-password' : 'remote-password').value;
+            const searchMsg = document.getElementById(isLocal ? 'local-search-msg' : 'remote-search-msg');
+            const dbDropdown = document.getElementById(isLocal ? 'db-name' : 'remote-db-name');
+
+            if (!dbPassword) {
+                searchMsg.innerText = "Please enter the Database Password to search.";
+                searchMsg.style.color = "#dc2626";
+                return;
+            }
+
+            searchMsg.innerText = "Connecting to server...";
+            searchMsg.style.color = "blue";
+
+            try {
+                const res = await fetch('/api/databases', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ server, port, dbUser, dbPassword })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    searchMsg.style.color = "green";
+                    searchMsg.innerText = `Found ${data.databases.length} databases.`;
+                    const currentSelection = dbDropdown.value; 
+                    dbDropdown.innerHTML = ''; 
+                    data.databases.forEach(db => {
+                        const option = document.createElement('option');
+                        option.value = db; option.text = db;
+                        if (db === currentSelection) option.selected = true;
+                        dbDropdown.appendChild(option);
+                    });
+                } else {
+                    searchMsg.style.color = "red"; searchMsg.innerText = "Error: " + data.error;
+                }
+            } catch (err) { searchMsg.style.color = "red"; searchMsg.innerText = "Server error. Is node running?"; }
+        }
+
+        async function updateDatabase() {
+            const server = document.getElementById('db-server').value, database = document.getElementById('db-name').value;
+            const user = document.getElementById('db-user').value, password = document.getElementById('db-password').value;
+            
+            const remoteServer = document.getElementById('remote-server').value, remotePort = document.getElementById('remote-port').value;
+            const remoteDatabase = document.getElementById('remote-db-name').value;
+            const remoteUser = document.getElementById('remote-user').value, remotePassword = document.getElementById('remote-password').value;
+            
+            const msgDiv = document.getElementById('db-msg');
+            try {
+                const res = await fetch(`${API_URL}/settings/database`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+                    body: JSON.stringify({ server, database, user, password, remoteServer, remotePort, remoteDatabase, remoteUser, remotePassword })
+                });
+                const data = await res.json();
+                if (res.ok) { 
+                    msgDiv.innerText = data.message; msgDiv.className = "success-msg"; 
+                    document.getElementById('db-password').value = '';
+                    document.getElementById('remote-password').value = '';
+                }
+                else { msgDiv.innerText = data.error; msgDiv.className = "error-msg"; }
+            } catch (e) { msgDiv.innerText = 'Server error.'; msgDiv.className = "error-msg"; }
+        }
+
+        async function createUser() {
+            const userId = document.getElementById('new-user-id').value;
+            const userName = document.getElementById('new-user-name').value;
+            const userPhone = document.getElementById('new-user-phone').value;
+            const password = document.getElementById('new-password').value;
+            const role = document.getElementById('new-role').value;
+            const userActive = document.getElementById('new-user-active').value;
+            const msgDiv = document.getElementById('create-user-msg');
+
+            try {
+                const res = await fetch(`${API_URL}/register`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` }, 
+                    body: JSON.stringify({ userId, userName, userPhone, password, role, userActive })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    msgDiv.innerText = `User '${userName}' created.`; msgDiv.className = "success-msg"; msgDiv.style.display = "block";
+                    document.getElementById('new-user-id').value = ''; document.getElementById('new-user-name').value = '';
+                    document.getElementById('new-user-phone').value = ''; document.getElementById('new-password').value = '';
+                } else { msgDiv.innerText = data.error; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+            } catch (e) { msgDiv.innerText = 'Server error.'; msgDiv.className = "error-msg"; msgDiv.style.display = "block"; }
+        }
+
+        function logout() { stopPolling(); localStorage.clear(); location.reload(); }
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "name": "insys-tlm-system-v1.0",
+  "version": "1.0.0",
+  "description": "Insys Service Management System",
+  "main": "server.js",
+  "bin": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "npm run build-linux",
+    "build-linux": "npx pkg@5.8.1 . --targets node16-linux-x64 --output dist/insys-tlm-service --public --public-packages \"*\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*",
+      "node_modules/sqlite3/**/*",
+      "node_modules/mssql/**/*"
+    ],
+    "outputPath": "dist"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mssql": "^12.7.9",
+    "multer": "^2.4.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.23.0"
+  }
+}
